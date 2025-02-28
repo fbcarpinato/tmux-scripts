@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+if [[ $# -eq 1 ]]; then
+  selected=$1
+else
+  git_folders=$(find ~/.config ~/Workspace -mindepth 1 -maxdepth 2 -type d -exec test -e "{}/.git" ';' -print)
+
+  selected=$(echo -e "${git_folders}" | fzf)
+fi
+
+if [[ -z $selected ]]; then
+  exit 0
+fi
+
+selected_name=$(basename "$selected" | tr . _)
+
+if [[ -z $TMUX ]]; then
+  exit 0
+fi
+
+if ! tmux has-session -t="$selected_name" 2> /dev/null; then
+  tmux new-session -ds "$selected_name" -c "$selected" -n "nvim" "nvim ."
+  tmux new-window -t "$selected_name" -c "$selected"
+fi
+
+tmux switch-client -t "$selected_name"
+tmux select-window -t "$selected_name:0"
+
